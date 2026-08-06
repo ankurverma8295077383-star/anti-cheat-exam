@@ -128,7 +128,6 @@
 
     <form id="examForm">
         <!-- Student Details -->
-        <!-- Student Details -->
         <div class="student-details">
             <h3>Student Verification</h3>
             <div class="form-group">
@@ -142,16 +141,8 @@
             <button type="button" id="startExamBtn" class="submit-btn" style="background-color: #28a745;">Start Exam & Enable Fullscreen</button>
         </div>
 
-        <!-- Ye naya DIV add karo -->
         <div id="questionsContainer" style="display: none;">
         
-        <!-- Yahan tumhare saare GIS Sections 1, 2, 3 rahenge... -->
-        
-        <button type="submit" class="submit-btn">Submit Exam</button>
-        </div> <!-- Is tag ko submit button ke theek baad close karo -->
-    </form>
-</div>
-
         <!-- ========================================== -->
         <!-- SECTION 1 -->
         <!-- ========================================== -->
@@ -359,7 +350,6 @@
             <textarea name="q30" placeholder="Type your answer here..."></textarea>
         </div>
 
-
         <!-- ========================================== -->
         <!-- SECTION 2 -->
         <!-- ========================================== -->
@@ -566,7 +556,6 @@
             <div class="question-title">60. Theory: What is spatial indexing (e.g., R-tree) and why is it essential for database queries?</div>
             <textarea name="q60" placeholder="Type your answer here..."></textarea>
         </div>
-
 
         <!-- ========================================== -->
         <!-- SECTION 3 -->
@@ -836,6 +825,7 @@
         </div>
 
         <button type="submit" class="submit-btn">Submit Exam</button>
+        </div> 
     </form>
 </div>
 
@@ -847,12 +837,12 @@
     const maxViolations = 5;
     const violationStatus = document.getElementById('violationStatus');
     let isSubmitting = false;
-    let examToken = null; // Backend se milne wala secure token
+    let examToken = null; 
 
     // 0. Start Exam Logic
     document.getElementById('startExamBtn').addEventListener('click', async () => {
-        const name = document.getElementById('studentName').value;
-        const id = document.getElementById('studentId').value;
+        const name = document.getElementById('studentName').value.trim();
+        const id = document.getElementById('studentId').value.trim();
         if (!name || !id) return alert("Please enter Name and Roll Number!");
 
         try {
@@ -864,15 +854,14 @@
             const data = await res.json();
             
             if (data.success) {
-                examToken = data.token; // Token save kar liya
+                examToken = data.token; 
                 
-                // Form fields freeze karke questions show karo
                 document.getElementById('studentName').readOnly = true;
                 document.getElementById('studentId').readOnly = true;
                 document.getElementById('startExamBtn').style.display = 'none';
                 document.getElementById('questionsContainer').style.display = 'block';
                 
-                startExam(); // Fullscreen chalu karo
+                startExam(); 
             }
         } catch (e) {
             alert("Error connecting to server. Please try again.");
@@ -914,13 +903,13 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                token: examToken, // Token bhej rahe hain
+                token: examToken, 
                 violationType: reason
             })
         }).catch(err => console.error("Log error:", err));
 
         if (violationCount >= maxViolations) {
-            alert("⚠️ आपने अधिकतम 3 बार चीटिंग की कोशिश की है! आपका टेस्ट अब लॉक किया जा रहा है।");
+            alert("⚠️ आपने अधिकतम 5 बार चीटिंग की कोशिश की है! आपका टेस्ट अब लॉक किया जा रहा है।");
             lockAndSubmit();
         } else {
             alert(`🚨 वार्निंग! चीटिंग डिटेक्ट हुई: ${reason}\n\nकुल वार्निंग: ${violationCount} / ${maxViolations}`);
@@ -930,7 +919,7 @@
     function lockAndSubmit() {
         isSubmitting = true;
         submitExamData();
-        document.getElementById('examForm').innerHTML = `<h2 style="color:#e53e3e; text-align:center; padding: 40px;">🛑 यह परीक्षा चीटिंग (3 Violations) के कारण ब्लॉक कर दी गई है। आपका डेटा रिकॉर्ड कर लिया गया है।</h2>`;
+        document.getElementById('examForm').innerHTML = `<h2 style="color:#e53e3e; text-align:center; padding: 40px;">🛑 यह परीक्षा चीटिंग (${maxViolations} Violations) के कारण ब्लॉक कर दी गई है। आपका डेटा रिकॉर्ड कर लिया गया है।</h2>`;
     }
 
     // 4. Data Submission Logic
@@ -945,7 +934,6 @@
             }
         });
 
-        // Add textareas manually
         document.querySelectorAll('textarea').forEach(ta => {
             if(ta.value) answers[ta.name] = ta.value;
         });
@@ -966,10 +954,30 @@
         }).catch(err => console.error(err));
     }
 
-    // Form Submit Listener
+    // 5. Form Submit Listener (UPDATED TO PREVENT SILENT BLOCKING)
     document.getElementById('examForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        isSubmitting = true;
+        e.preventDefault(); 
+        
+        const studentName = document.getElementById('studentName').value.trim();
+        const studentId = document.getElementById('studentId').value.trim();
+        
+        if (!studentName || !studentId) {
+            alert("⚠️ Error: कृपया अपना नाम और Roll Number भरें।"); 
+            return; 
+        }
+
+        isSubmitting = true; 
+        
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(err => console.log(err));
+            } else if (document.webkitExitFullscreen) { 
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) { 
+                document.msExitFullscreen();
+            }
+        }
+
         submitExamData();
     });
 </script>
