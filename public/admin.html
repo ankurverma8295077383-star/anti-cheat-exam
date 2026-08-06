@@ -18,6 +18,7 @@
 
     <h1>📋 Exam Submissions & Violation Log</h1>
     <button onclick="loadData()" style="padding: 8px 15px; cursor: pointer;">🔄 Refresh Data</button>
+    <button onclick="clearHistory()" style="padding: 8px 15px; cursor: pointer; background-color: #dc3545; color: white; border: none; margin-left: 10px; border-radius: 4px;">🗑️ Clear All History</button>
 
     <table>
         <thead>
@@ -77,6 +78,28 @@
                 console.error(err);
                 alert('Data load करने में समस्या आई।');
             });
+    }
+
+    // History clear karne ka function
+    function clearHistory() {
+        if (confirm("⚠️ क्या आप सच में सारा पुराना डेटा डिलीट करना चाहते हैं? यह डेटा वापस नहीं मिलेगा!")) {
+            fetch('/api/clear-submissions', { 
+                method: 'DELETE' 
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert("सारा पुराना डेटा डिलीट हो गया है! अब फ्रेश एग्जाम लिए जा सकते हैं।");
+                    loadData(); // Table ko auto-refresh karne ke liye
+                } else {
+                    alert("डेटा डिलीट करने में प्रॉब्लम आई।");
+                }
+            })
+            .catch(err => {
+                console.error("Clear error:", err);
+                alert("Server error.");
+            });
+        }
     }
 
     // ऑटोमेटिक डेटा लोड करें
