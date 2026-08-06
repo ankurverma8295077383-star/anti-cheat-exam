@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Admin Dashboard - Exam Results</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f9; }
+        h1 { color: #333; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #007bff; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        .violation-badge { background: #ff4d4d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .success-badge { background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <h1>📋 Exam Submissions & Violation Log</h1>
+    <button onclick="loadData()" style="padding: 8px 15px; cursor: pointer;">🔄 Refresh Data</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Student ID</th>
+                <th>Submitted Time</th>
+                <th>Answers Submitted</th>
+                <th>Total Violations</th>
+                <th>Violation Details</th>
+            </tr>
+        </thead>
+        <tbody id="submissionTable">
+            <tr><td colspan="5">Loading data...</td></tr>
+        </tbody>
+    </table>
+
+<script>
+    function loadData() {
+        fetch('/api/all-submissions')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('submissionTable');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5">अभी तक किसी छात्र ने एग्जाम नहीं दिया है।</td></tr>';
+                    return;
+                }
+
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    
+                    // Answers Formatting
+                    const answersText = item.answers ? JSON.stringify(item.answers) : 'No Answers';
+                    
+                    // Violation Details Formatting
+                    let violationDetails = 'None';
+                    if (item.violations && item.violations.length > 0) {
+                        violationDetails = item.violations.map(v => `${v.type} (${v.time})`).join('<br>');
+                    }
+
+                    const violationBadge = item.violations.length > 0 
+                        ? `<span class="violation-badge">${item.violations.length} Violations</span>` 
+                        : `<span class="success-badge">Clean Exam</span>`;
+
+                    tr.innerHTML = `
+                        <td><strong>${item.studentName || 'Unknown'}</strong></td>
+                        <td>${new Date(item.submittedAt).toLocaleString()}</td>
+                        <td><code>${answersText}</code></td>
+                        <td>${violationBadge}</td>
+                        <td style="font-size: 13px; color: #d9534f;">${violationDetails}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Data load करने में समस्या आई।');
+            });
+    }
+
+    // ऑटोमेटिक डेटा लोड करें
+    loadData();
+</script>
+
+</body>
+</html>

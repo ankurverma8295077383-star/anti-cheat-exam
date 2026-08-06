@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Anti-Cheating Exam Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f6f9; user-select: none; }
+        .container { max-width: 600px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .warning { color: red; font-weight: bold; margin-bottom: 15px; }
+        .question { margin-bottom: 20px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        /* Focus & Fullscreen Blur Overlay */
+        #blur-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.9); color: white; text-align: center; padding-top: 150px; font-size: 22px; z-index: 9999; }
+        /* Start Exam Overlay */
+        #start-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: #007bff; color: white; text-align: center; padding-top: 180px; z-index: 10000; }
+    </style>
+</head>
+<body>
+
+<!-- 1. Start Exam Popup (Fullscreen एक्टिव करने के लिए) -->
+<div id="start-overlay">
+    <h2>Secure Examination Portal</h2>
+    <p>परीक्षा शुरू करने के लिए फुलस्क्रीन मोड अनिवार्य है।</p>
+    <br>
+    <button onclick="startExamWithFullscreen()" style="padding: 12px 25px; font-size: 18px; background: white; color: #007bff; font-weight: bold;">Start Exam (Enter Fullscreen)</button>
+</div>
+
+<!-- 2. Warning / Blur Popup -->
+<div id="blur-overlay">
+    <div id="blur-message">WARNING: Exam window focus lost! Return to the exam screen.</div>
+</div>
+
+<!-- 3. Main Exam Container -->
+<div class="container">
+    <h2>Secure Online Examination</h2>
+    <div class="warning" id="warning-box">Violations: 0 / 3</div>
+
+    <form id="examForm">
+        <div class="question">
+            <p><strong>Q1. HTML का पूरा नाम क्या है?</strong></p>
+            <input type="radio" name="q1" value="HyperText Markup Language"> HyperText Markup Language<br>
+            <input type="radio" name="q1" value="HighText Machine Language"> HighText Machine Language
+        </div>
+
+        <div class="question">
+            <p><strong>Q2. JavaScript में Variable डिक्लेयर करने के लिए किसका उपयोग होता है?</strong></p>
+            <input type="radio" name="q2" value="var"> var / let / const<br>
+            <input type="radio" name="q2" value="make"> make
+        </div>
+
+        <button type="submit">Submit Exam</button>
+    </form>
+</div>
+
+<!-- यहाँ से JAVASCRIPT कोड शुरू होता है -->
+<script>
+    const studentName = "Student_101";
+    let violations = [];
+    let violationCount = 0;
+    const maxAllowedViolations = 3;
+
+    // Backend में Violation भेजने का फ़ंक्शन
+    function logViolation(type) {
+        const time = new Date().toLocaleTimeString();
+        violations.push({ type, time });
+        violationCount++;
+        
+        document.getElementById('warning-box').innerText = `Violations: ${violationCount} / ${maxAllowedViolations}`;
+
+        fetch('/api/log-violation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentName, type, timestamp: time })
+        });
+
+        if (violationCount >= maxAllowedViolations) {
+            alert('अधिकतम वायोलेशन सीमा पार हो गई है! आपका एग्जाम ऑटो-सबमिट किया जा रहा है।');
+            submitExam();
+        }
+    }
+
+    // --- [FEATURE 1: FULLSCREEN ENFORCER JAVASCRIPT] ---
+    function startExamWithFullscreen() {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) { elem.requestFullscreen(); }
+        else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
+        else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
+
+        document.getElementById('start-overlay').style.display = 'none';
+    }
+
+    function handleFullscreenExit() {
+        if (!document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
+            logViolation('Exited Fullscreen Mode');
+            const blurOverlay = document.getElementById('blur-overlay');
+            blurOverlay.style.display = 'block';
+            blurOverlay.innerHTML = `
+                <div style="margin-top: 50px;">
+                    <h2>⚠️ WARNING: आप फुलस्क्रीन मोड से बाहर आ गए हैं!</h2>
+                    <p>परीक्षा जारी रखने के लिए वापस फुलस्क्रीन में जाएं।</p>
+                    <button onclick="startExamWithFullscreen()" style="padding: 10px 20px; font-size: 16px; margin-top: 15px;">Re-enter Fullscreen</button>
+                </div>
+            `;
+        } else {
+            document.getElementById('blur-overlay').style.display = 'none';
+        }
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenExit);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenExit);
+
+    // --- [FEATURE 2: ANTI-CHEATING RESTRICTIONS] ---
+    // Copy, Paste, Cut, Right-click Block
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('copy', e => { e.preventDefault(); logViolation('Copy Attempt'); });
+    document.addEventListener('paste', e => { e.preventDefault(); logViolation('Paste Attempt'); });
+    document.addEventListener('cut', e => { e.preventDefault(); logViolation('Cut Attempt'); });
+
+    // Keyboard Shortcuts & PrintScreen Ban
+    document.addEventListener('keydown', e => {
+        if (e.key === 'PrintScreen' || (e.ctrlKey && ['c','v','u','s','a','p'].includes(e.key.toLowerCase())) || e.key === 'F12') {
+            e.preventDefault();
+            logViolation(`Blocked Key: ${e.key}`);
+        }
+    });
+
+    // Tab Switch & Focus Loss
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { logViolation('Tab Switched / Minimized'); }
+    });
+
+    window.addEventListener('blur', () => {
+        document.getElementById('blur-overlay').style.display = 'block';
+        logViolation('Window Focus Lost (App Switched)');
+    });
+
+    window.addEventListener('focus', () => {
+        if (document.fullscreenElement) {
+            document.getElementById('blur-overlay').style.display = 'none';
+        }
+    });
+
+    // Cursor Movement Tracking (5 Seconds)
+    let mouseMoved = false;
+    document.addEventListener('mousemove', () => { mouseMoved = true; });
+
+    setInterval(() => {
+        if (!mouseMoved) {
+            logViolation('No Cursor Movement (Idle 5s)');
+        } else {
+            mouseMoved = false;
+        }
+    }, 5000);
+
+    // --- [FEATURE 3: EXAM SUBMISSION] ---
+    function submitExam() {
+        const formData = new FormData(document.getElementById('examForm'));
+        const answers = {
+            q1: formData.get('q1'),
+            q2: formData.get('q2')
+        };
+
+        fetch('/api/submit-exam', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentName, answers, violations })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            window.location.reload();
+        });
+    }
+
+    document.getElementById('examForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitExam();
+    });
+</script>
+</body>
+</html>
