@@ -12,22 +12,32 @@
         tr:nth-child(even) { background: #f9f9f9; }
         .violation-badge { background: #ff4d4d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .success-badge { background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .btn-pdf { background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;}
+        .btn-pdf:hover { background: #138496; }
     </style>
+
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
     <h1>📋 Exam Submissions & Violation Log</h1>
-    <button onclick="loadData()" style="padding: 8px 15px; cursor: pointer;">🔄 Refresh Data</button>
-    <button onclick="clearHistory()" style="padding: 8px 15px; cursor: pointer; background-color: #dc3545; color: white; border: none; margin-left: 10px; border-radius: 4px;">🗑️ Clear All History</button>
+    
+    <div style="margin-bottom: 20px;">
+        <button onclick="loadData()" style="padding: 10px 15px; cursor: pointer;">🔄 Refresh Data</button>
+        <button onclick="clearHistory()" style="padding: 10px 15px; cursor: pointer; background-color: #dc3545; color: white; border: none; margin-left: 10px; border-radius: 4px;">🗑️ Clear All History</button>
+        <button onclick="downloadMasterPDF()" style="padding: 10px 15px; cursor: pointer; background-color: #28a745; color: white; border: none; margin-left: 10px; border-radius: 4px;">📥 Download Master PDF</button>
+    </div>
 
     <table>
         <thead>
             <tr>
-                <th>Student ID</th>
+                <th>Student ID / Name</th>
                 <th>Submitted Time</th>
-                <th>Answers Submitted</th>
+                <th>Answers (Preview)</th>
                 <th>Total Violations</th>
-                <th>Violation Details</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="submissionTable">
@@ -36,10 +46,13 @@
     </table>
 
 <script>
+    let globalStudentData = []; // PDF banane ke liye data yahan save hoga
+
     function loadData() {
         fetch('/api/all-submissions')
             .then(res => res.json())
             .then(data => {
+                globalStudentData = data; 
                 const tbody = document.getElementById('submissionTable');
                 tbody.innerHTML = '';
 
@@ -48,28 +61,29 @@
                     return;
                 }
 
-                data.forEach(item => {
+                data.forEach((item, index) => {
                     const tr = document.createElement('tr');
                     
-                    // Answers Formatting
-                    const answersText = item.answers ? JSON.stringify(item.answers) : 'No Answers';
+                    // Answers Formatting (Truncated preview)
+                    let rawJSON = item.answers ? JSON.stringify(item.answers) : 'No Answers';
+                    const answersPreview = rawJSON.length > 80 ? rawJSON.substring(0, 80) + '...' : rawJSON;
                     
                     // Violation Details Formatting
-                    let violationDetails = 'None';
+                    let violationDetails = '';
                     if (item.violations && item.violations.length > 0) {
                         violationDetails = item.violations.map(v => `${v.type} (${v.time})`).join('<br>');
                     }
 
                     const violationBadge = item.violations.length > 0 
-                        ? `<span class="violation-badge">${item.violations.length} Violations</span>` 
+                        ? `<span class="violation-badge">${item.violations.length} Violations</span><br><span style="font-size: 11px; color: #d9534f; display:block; margin-top:5px;">${violationDetails}</span>` 
                         : `<span class="success-badge">Clean Exam</span>`;
 
                     tr.innerHTML = `
-                        <td><strong>${item.studentName || 'Unknown'}</strong></td>
+                        <td><strong>${item.studentName || 'Unknown'}</strong><br><small>${item.studentId || 'N/A'}</small></td>
                         <td>${new Date(item.submittedAt).toLocaleString()}</td>
-                        <td><code>${answersText}</code></td>
+                        <td><code>${answersPreview}</code></td>
                         <td>${violationBadge}</td>
-                        <td style="font-size: 13px; color: #d9534f;">${violationDetails}</td>
+                        <td><button class="btn-pdf" onclick="downloadSinglePDF(${index})">📄 Get PDF</button></td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -80,7 +94,6 @@
             });
     }
 
-    // History clear karne ka function
     function clearHistory() {
         if (confirm("⚠️ क्या आप सच में सारा पुराना डेटा डिलीट करना चाहते हैं? यह डेटा वापस नहीं मिलेगा!")) {
             fetch('/api/clear-submissions', { 
@@ -90,7 +103,7 @@
             .then(data => {
                 if (data.success) {
                     alert("सारा पुराना डेटा डिलीट हो गया है! अब फ्रेश एग्जाम लिए जा सकते हैं।");
-                    loadData(); // Table ko auto-refresh karne ke liye
+                    loadData(); 
                 } else {
                     alert("डेटा डिलीट करने में प्रॉब्लम आई।");
                 }
@@ -102,7 +115,95 @@
         }
     }
 
-    // ऑटोमेटिक डेटा लोड करें
+    // ===============================================
+    // PDF GENERATION SYSTEM
+    // ===============================================
+
+    function formatAnswersForTable(answersObj) {
+        if (!answersObj || Object.keys(answersObj).length === 0) return [['No Answers', 'N/A']];
+        
+        let formattedData = [];
+        for (let key in answersObj) {
+            formattedData.push([key.toUpperCase(), answersObj[key]]);
+        }
+        return formattedData;
+    }
+
+    function downloadSinglePDF(index) {
+        const student = globalStudentData[index];
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(18);
+        doc.text("Student Examination Report", 14, 20);
+        
+        doc.setFontSize(12);
+        doc.text(`Name: ${student.studentName || 'Unknown'}`, 14, 30);
+        doc.text(`Roll No / ID: ${student.studentId || 'N/A'}`, 14, 38);
+        doc.text(`Submission Time: ${new Date(student.submittedAt).toLocaleString()}`, 14, 46);
+        doc.text(`Total Violations: ${student.violations ? student.violations.length : 0}`, 14, 54);
+        
+        const tableData = formatAnswersForTable(student.answers);
+        
+        doc.autoTable({
+            startY: 60,
+            head: [['Question', 'Submitted Answer']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 123, 255] }
+        });
+        
+        doc.save(`${student.studentName || 'Student'}_Exam_Report.pdf`);
+    }
+
+    function downloadMasterPDF() {
+        if (globalStudentData.length === 0) {
+            return alert("PDF बनाने के लिए कोई डेटा मौजूद नहीं है!");
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(22);
+        doc.setTextColor(0, 123, 255);
+        doc.text("Master Examination Report", 14, 20);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Total Students Evaluated: ${globalStudentData.length}`, 14, 30);
+        doc.text(`Date Generated: ${new Date().toLocaleString()}`, 14, 38);
+        
+        let currentY = 50;
+
+        globalStudentData.forEach((student, i) => {
+            if (i > 0) {
+                doc.addPage();
+                currentY = 20;
+            }
+            
+            doc.setFontSize(16);
+            doc.setTextColor(40, 167, 69); 
+            doc.text(`Student: ${student.studentName || 'Unknown'} (ID: ${student.studentId || 'N/A'})`, 14, currentY);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Submitted At: ${new Date(student.submittedAt).toLocaleString()}`, 14, currentY + 8);
+            doc.text(`Violations Recorded: ${student.violations ? student.violations.length : 0}`, 14, currentY + 14);
+            
+            const tableData = formatAnswersForTable(student.answers);
+            
+            doc.autoTable({
+                startY: currentY + 20,
+                head: [['Question', 'Answer']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [52, 58, 64] }
+            });
+        });
+        
+        doc.save("Master_Exam_Report_GIS.pdf");
+    }
+
     loadData();
 </script>
 
