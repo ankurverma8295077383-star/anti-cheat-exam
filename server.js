@@ -96,5 +96,19 @@ app.get('/api/all-submissions', async (req, res) => {
     }
 });
 
+// API 5: Clear All Exam History (Admin Feature)
+app.delete('/api/clear-submissions', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState === 1) {
+            await Submission.deleteMany({}); // Ye command database se sab delete kar dega
+            res.json({ success: true, message: 'All records deleted successfully!' });
+        } else {
+            res.status(500).json({ success: false, message: 'Database not connected' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error deleting records' });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
