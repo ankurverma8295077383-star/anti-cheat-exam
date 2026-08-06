@@ -844,32 +844,55 @@
 <!-- ========================================== -->
 <script>
     let violationCount = 0;
-    const maxViolations = 3;
+    const maxViolations = 5;
     const violationStatus = document.getElementById('violationStatus');
     let isSubmitting = false;
+    let examToken = null; // Backend se milne wala secure token
+
+    // 0. Start Exam Logic
+    document.getElementById('startExamBtn').addEventListener('click', async () => {
+        const name = document.getElementById('studentName').value;
+        const id = document.getElementById('studentId').value;
+        if (!name || !id) return alert("Please enter Name and Roll Number!");
+
+        try {
+            const res = await fetch('/api/start-exam', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ studentName: name, studentId: id })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                examToken = data.token; // Token save kar liya
+                
+                // Form fields freeze karke questions show karo
+                document.getElementById('studentName').readOnly = true;
+                document.getElementById('studentId').readOnly = true;
+                document.getElementById('startExamBtn').style.display = 'none';
+                document.getElementById('questionsContainer').style.display = 'block';
+                
+                startExam(); // Fullscreen chalu karo
+            }
+        } catch (e) {
+            alert("Error connecting to server. Please try again.");
+        }
+    });
 
     // 1. Fullscreen Engine
     function startExam() {
         const docEl = document.documentElement;
         if (docEl.requestFullscreen) docEl.requestFullscreen();
-        else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
         else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
         else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
     }
 
-    document.addEventListener('click', function initFullscreen() {
-        startExam();
-        document.removeEventListener('click', initFullscreen);
-    });
-
     document.addEventListener('fullscreenchange', handleFullscreenExit);
     document.addEventListener('webkitfullscreenchange', handleFullscreenExit);
-    document.addEventListener('mozfullscreenchange', handleFullscreenExit);
-    document.addEventListener('MSFullscreenChange', handleFullscreenExit);
 
     function handleFullscreenExit() {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
-            if (!isSubmitting) {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (!isSubmitting && examToken) {
                 triggerViolation("Full-Screen Exited / Esc Key Pressed");
             }
         }
@@ -877,7 +900,9 @@
 
     // 2. Tab Change / Window Blur Engine
     window.addEventListener('blur', () => {
-        triggerViolation("App Switched / New Tab Opened / Window Blurred");
+        if (!isSubmitting && examToken) {
+            triggerViolation("App Switched / New Tab Opened / Window Blurred");
+        }
     });
 
     // 3. Violation Handler
@@ -889,10 +914,8 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                name: document.getElementById('studentName').value || 'Unknown Student',
-                rollNo: document.getElementById('studentId').value || 'N/A',
-                violationType: reason,
-                totalViolations: violationCount
+                token: examToken, // Token bhej rahe hain
+                violationType: reason
             })
         }).catch(err => console.error("Log error:", err));
 
@@ -906,17 +929,48 @@
 
     function lockAndSubmit() {
         isSubmitting = true;
+        submitExamData();
         document.getElementById('examForm').innerHTML = `<h2 style="color:#e53e3e; text-align:center; padding: 40px;">🛑 यह परीक्षा चीटिंग (3 Violations) के कारण ब्लॉक कर दी गई है। आपका डेटा रिकॉर्ड कर लिया गया है।</h2>`;
     }
 
-    // 4. Form Submit
+    // 4. Data Submission Logic
+    function submitExamData() {
+        const studentName = document.getElementById('studentName').value;
+        const formData = new FormData(document.getElementById('examForm'));
+        const answers = {};
+        
+        formData.forEach((value, key) => {
+            if (key !== 'studentName' && key !== 'studentId') {
+                answers[key] = value;
+            }
+        });
+
+        // Add textareas manually
+        document.querySelectorAll('textarea').forEach(ta => {
+            if(ta.value) answers[ta.name] = ta.value;
+        });
+
+        fetch('/api/submit-exam', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: examToken, answers: answers })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert(`🎉 धन्यवाद ${studentName}! आपका टेस्ट सफलतापूर्वक सबमिट हो गया है।`);
+                window.location.reload();
+            } else {
+                alert('🛑 API Bypass Detected ya submission mein error hai!');
+            }
+        }).catch(err => console.error(err));
+    }
+
+    // Form Submit Listener
     document.getElementById('examForm').addEventListener('submit', function(e) {
         e.preventDefault();
         isSubmitting = true;
-        
-        const studentName = document.getElementById('studentName').value;
-        alert(`🎉 धन्यवाद ${studentName}! आपके द्वारा हल किए गए सभी प्रश्न सफलतापूर्वक सबमिट हो गए हैं।`);
-        window.location.reload();
+        submitExamData();
     });
 </script>
 
