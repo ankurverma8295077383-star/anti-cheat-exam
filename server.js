@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
-const crypto = require('crypto'); // Token generate karne ke liye
+const crypto = require('crypto');
 
 const app = express();
 app.use(express.json());
@@ -13,7 +13,7 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log('MongoDB Connected Successfully'))
     .catch(err => console.log('MongoDB Connection Error:', err.message));
 
-// Schema Update
+// 1. Final Submission Schema
 const submissionSchema = new mongoose.Schema({
     studentName: String,
     studentId: String,
@@ -23,46 +23,74 @@ const submissionSchema = new mongoose.Schema({
 });
 const Submission = mongoose.model('Submission', submissionSchema);
 
-// --- SECURITY ENGINE: Server-Side Tracking ---
-const activeExams = new Map();
+// 2. Active Session Schema (RAM ki jagah Database mein token save karne ke liye)
+const activeSessionSchema = new mongoose.Schema({
+    token: String,
+    studentName: String,
+    studentId: String,
+    violations: Array,
+    createdAt: { type: Date, default: Date.now, expires: '12h' } // 12 ghante baad auto-delete
+});
+const ActiveSession = mongoose.model('ActiveSession', activeSessionSchema);
+
 
 // API 1: Exam Start Karein aur Token lein
-app.post('/api/start-exam', (req, res) => {
+app.post('/api/start-exam', async (req, res) => {
     const { studentName, studentId } = req.body;
     if (!studentName || !studentId) return res.status(400).json({ error: "Name and ID required" });
     
-    const token = crypto.randomUUID(); // Unique secure token
-    activeExams.set(token, { studentName, studentId, violations: [] });
-    res.json({ success: true, token });
+    const token = crypto.randomUUID();
+    
+    try {
+        if (mongoose.connection.readyState === 1) {
+            // Token ab database me save hoga
+            const newSession = new ActiveSession({ token, studentName, studentId, violations: [] });
+            await newSession.save();
+        }
+        res.json({ success: true, token });
+    } catch (error) {
+        res.status(500).json({ error: "Failed to create session" });
+    }
 });
 
-// API 2: Violation Log (Synced with frontend)
-app.post('/api/logs', (req, res) => {
+// API 2: Violation Log
+app.post('/api/logs', async (req, res) => {
     const { token, violationType } = req.body;
     
-    if (!token || !activeExams.has(token)) {
-        return res.status(401).json({ error: "Unauthorized session" });
+    try {
+        if (mongoose.connection.readyState === 1) {
+            // Token database me verify karna
+            const session = await ActiveSession.findOne({ token });
+            if (!session) return res.status(401).json({ error: "Unauthorized session" });
+            
+            session.violations.push({ type: violationType, time: new Date().toLocaleTimeString() });
+            await session.save();
+            
+            console.log(`[VIOLATION ALERT] ${session.studentName} -> ${violationType}`);
+            res.json({ status: 'Logged', totalViolations: session.violations.length });
+        }
+    } catch (error) {
+        res.status(500).json({ error: "Log failed" });
     }
-    
-    const session = activeExams.get(token);
-    session.violations.push({ type: violationType, time: new Date().toLocaleTimeString() });
-    
-    console.log(`[VIOLATION ALERT] ${session.studentName} -> ${violationType}`);
-    res.json({ status: 'Logged', totalViolations: session.violations.length });
 });
 
 // API 3: Final Exam Submit
 app.post('/api/submit-exam', async (req, res) => {
     const { token, answers } = req.body;
     
-    // API Bypass Check
-    if (!token || !activeExams.has(token)) {
+    if (!token) {
         return res.status(401).json({ success: false, message: 'Invalid session or direct API bypass detected!' });
     }
 
-    const session = activeExams.get(token);
     try {
         if (mongoose.connection.readyState === 1) {
+            // Database se session uthao
+            const session = await ActiveSession.findOne({ token });
+            
+            if (!session) {
+                return res.status(401).json({ success: false, message: 'Session expired. API Bypass Detected!' });
+            }
+
             const newSubmission = new Submission({ 
                 studentName: session.studentName,
                 studentId: session.studentId,
@@ -70,12 +98,15 @@ app.post('/api/submit-exam', async (req, res) => {
                 violations: session.violations 
             });
             await newSubmission.save();
+            
+            // Submit hone ke baad session table se delete kar do
+            await ActiveSession.deleteOne({ token });
+            
+            console.log('Exam Submitted:', { studentName: session.studentName, violations: session.violations.length });
+            res.json({ success: true, message: 'Exam submitted successfully!' });
+        } else {
+            res.status(500).json({ success: false, message: 'Database offline' });
         }
-        
-        activeExams.delete(token); // Submit hone ke baad session hata dein
-        
-        console.log('Exam Submitted:', { studentName: session.studentName, violations: session.violations.length });
-        res.json({ success: true, message: 'Exam submitted successfully!' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Error saving submission' });
@@ -100,7 +131,7 @@ app.get('/api/all-submissions', async (req, res) => {
 app.delete('/api/clear-submissions', async (req, res) => {
     try {
         if (mongoose.connection.readyState === 1) {
-            await Submission.deleteMany({}); // Ye command database se sab delete kar dega
+            await Submission.deleteMany({});
             res.json({ success: true, message: 'All records deleted successfully!' });
         } else {
             res.status(500).json({ success: false, message: 'Database not connected' });
