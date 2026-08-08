@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Online Examination - GIS Assessment</title>
+    <title>Secure Online Examination</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -120,10 +120,10 @@
 <body>
 
 <div class="exam-container">
-    <h1>Secure Online Examination (GIS Assessment)</h1>
+    <h1>Secure Online Examination</h1>
     
     <div class="violation-box" id="violationStatus">
-        Violations: 0 / 3 (⚠️ ध्यान दें: टैब बदलने या फुल-स्क्रीन से बाहर निकलने पर टेस्ट लॉक हो जाएगा)
+        Violations: 0 / 3 (⚠️Note: The test will lock when you change tabs or exit full-screen)
     </div>
 
     <form id="examForm">
@@ -135,8 +135,8 @@
                 <input type="text" id="studentName" required placeholder="Enter your full name">
             </div>
             <div class="form-group">
-                <label for="studentId">Roll Number / Student ID *</label>
-                <input type="text" id="studentId" required placeholder="Enter your Roll No / ID">
+                <label for="studentId">Student Batch Name *</label>
+                <input type="text" id="studentId" required placeholder="Enter your Batch Name / ID">
             </div>
             <button type="button" id="startExamBtn" class="submit-btn" style="background-color: #28a745;">Start Exam & Enable Fullscreen</button>
         </div>
@@ -909,17 +909,17 @@
         }).catch(err => console.error("Log error:", err));
 
         if (violationCount >= maxViolations) {
-            alert("⚠️ आपने अधिकतम 5 बार चीटिंग की कोशिश की है! आपका टेस्ट अब लॉक किया जा रहा है।");
+            alert("⚠️ You've tried cheating the maximum of 5 times! Your test is now locked.");
             lockAndSubmit();
         } else {
-            alert(`🚨 वार्निंग! चीटिंग डिटेक्ट हुई: ${reason}\n\nकुल वार्निंग: ${violationCount} / ${maxViolations}`);
+            alert(`🚨 Warning! Movement Detected: ${reason}\n\nTotal Warning: ${violationCount} / ${maxViolations}`);
         }
     }
 
     function lockAndSubmit() {
         isSubmitting = true;
         submitExamData();
-        document.getElementById('examForm').innerHTML = `<h2 style="color:#e53e3e; text-align:center; padding: 40px;">🛑 यह परीक्षा चीटिंग (${maxViolations} Violations) के कारण ब्लॉक कर दी गई है। आपका डेटा रिकॉर्ड कर लिया गया है।</h2>`;
+        document.getElementById('examForm').innerHTML = `<h2 style="color:#e53e3e; text-align:center; padding: 40px;">🛑 This exam has been blocked due to cheating. (${maxViolations} Violations) Your data has been recorded.</h2>`;
     }
 
     // 4. Data Submission Logic
@@ -946,10 +946,10 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert(`🎉 धन्यवाद ${studentName}! आपका टेस्ट सफलतापूर्वक सबमिट हो गया है।`);
+                alert(`🎉 Thank you ${studentName}! Your test has been successfully submitted.।`);
                 window.location.reload();
             } else {
-                alert('🛑 API Bypass Detected ya submission mein error hai!');
+                alert('🛑 API Bypass Detected This is not your error!');
             }
         }).catch(err => console.error(err));
     }
@@ -962,7 +962,7 @@
         const studentId = document.getElementById('studentId').value.trim();
         
         if (!studentName || !studentId) {
-            alert("⚠️ Error: कृपया अपना नाम और Roll Number भरें।"); 
+            alert("⚠️ Error: Please enter your name and roll number।"); 
             return; 
         }
 
