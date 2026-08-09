@@ -50,7 +50,8 @@
             margin-bottom: 5px;
             color: #495057;
         }
-        .form-group input[type="text"] {
+        .form-group input[type="text"],
+        .form-group input[type="password"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #ced4da;
@@ -138,6 +139,13 @@
                 <label for="studentId">Student Batch Name *</label>
                 <input type="text" id="studentId" required placeholder="Enter your Batch Name / ID">
             </div>
+            
+            <!-- NAYA UPDATE: Secret Exam Key -->
+            <div class="form-group">
+                <label for="examKey">Secret Exam Key *</label>
+                <input type="password" id="examKey" required placeholder="Enter the key provided by teacher">
+            </div>
+
             <button type="button" id="startExamBtn" class="submit-btn" style="background-color: #28a745;">Start Exam & Enable Fullscreen</button>
         </div>
 
@@ -843,13 +851,15 @@
     document.getElementById('startExamBtn').addEventListener('click', async () => {
         const name = document.getElementById('studentName').value.trim();
         const id = document.getElementById('studentId').value.trim();
-        if (!name || !id) return alert("Please enter Name and Roll Number!");
+        const key = document.getElementById('examKey').value.trim();
+
+        if (!name || !id || !key) return alert("Please enter Name, Batch Name, and Exam Key!");
 
         try {
             const res = await fetch('/api/start-exam', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ studentName: name, studentId: id })
+                body: JSON.stringify({ studentName: name, studentId: id, examKey: key })
             });
             const data = await res.json();
             
@@ -858,10 +868,13 @@
                 
                 document.getElementById('studentName').readOnly = true;
                 document.getElementById('studentId').readOnly = true;
+                document.getElementById('examKey').readOnly = true;
                 document.getElementById('startExamBtn').style.display = 'none';
                 document.getElementById('questionsContainer').style.display = 'block';
                 
                 startExam(); 
+            } else {
+                alert("⚠️ Error: " + (data.error || "Failed to start exam"));
             }
         } catch (e) {
             alert("Error connecting to server. Please try again.");
