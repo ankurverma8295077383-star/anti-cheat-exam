@@ -12,8 +12,12 @@
         tr:nth-child(even) { background: #f9f9f9; }
         .violation-badge { background: #ff4d4d; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .success-badge { background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        
+        /* Action Buttons CSS */
         .btn-pdf { background: #17a2b8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;}
         .btn-pdf:hover { background: #138496; }
+        .btn-delete { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; margin-left: 5px; }
+        .btn-delete:hover { background: #c82333; }
     </style>
 
     <!-- PDF Generation Libraries -->
@@ -83,7 +87,10 @@
                         <td>${new Date(item.submittedAt).toLocaleString()}</td>
                         <td><code>${answersPreview}</code></td>
                         <td>${violationBadge}</td>
-                        <td><button class="btn-pdf" onclick="downloadSinglePDF(${index})">📄 Get PDF</button></td>
+                        <td style="display:flex; align-items:center;">
+                            <button class="btn-pdf" onclick="downloadSinglePDF(${index})">📄 Get PDF</button>
+                            <button class="btn-delete" onclick="deleteSingleRecord('${item._id}')">🗑️ Delete</button>
+                        </td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -94,6 +101,28 @@
             });
     }
 
+    // Single Record Delete Function
+    function deleteSingleRecord(recordId) {
+        if (confirm("⚠️ क्या आप सच में इस छात्र का डेटा डिलीट करना चाहते हैं?")) {
+            fetch(`/api/delete-submission/${recordId}`, { 
+                method: 'DELETE' 
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    loadData(); // Delete hone ke baad table automatically refresh ho jayegi
+                } else {
+                    alert("डेटा डिलीट करने में प्रॉब्लम आई।");
+                }
+            })
+            .catch(err => {
+                console.error("Delete error:", err);
+                alert("Server error.");
+            });
+        }
+    }
+
+    // Clear All History Function
     function clearHistory() {
         if (confirm("⚠️ क्या आप सच में सारा पुराना डेटा डिलीट करना चाहते हैं? यह डेटा वापस नहीं मिलेगा!")) {
             fetch('/api/clear-submissions', { 
