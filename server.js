@@ -152,5 +152,23 @@ app.delete('/api/clear-submissions', async (req, res) => {
     }
 });
 
+// 🛑 NAYA API 6: Delete Single Student Submission
+app.delete('/api/delete-submission/:id', async (req, res) => {
+    try {
+        if (mongoose.connection.readyState === 1) {
+            const deletedRecord = await Submission.findByIdAndDelete(req.params.id);
+            if (deletedRecord) {
+                res.json({ success: true, message: 'Record deleted successfully!' });
+            } else {
+                res.status(404).json({ success: false, message: 'Record not found' });
+            }
+        } else {
+            res.status(500).json({ success: false, message: 'Database not connected' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error deleting record' });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
