@@ -50,7 +50,79 @@
     </table>
 
 <script>
-    let globalStudentData = []; // PDF banane ke liye data yahan save hoga
+    // ===============================================
+    // 🛑 MASTER ANSWER KEY & QUESTION PAPER DATA
+    // ===============================================
+    const masterAnswerKey = {
+        "q1": { question: "1. What does GIS stand for?", correct: "Geographic Information System" },
+        "q2": { question: "2. Which of the following is NOT a core component of GIS?", correct: "Seismograph" },
+        "q3": { question: "3. Who is widely recognized as the 'Father of GIS'?", correct: "Roger Tomlinson" },
+        "q4": { question: "4. Spatial data primarily answers which of the following questions?", correct: "Where is it?" },
+        "q5": { question: "5. Which of the following is a hardware requirement for intensive GIS processing?", correct: "High-performance GPU & CPU" },
+        "q6": { question: "6. What type of data format stores information as a grid of cells or pixels?", correct: "Raster Data" },
+        "q7": { question: "7. Which software is an open-source GIS application?", correct: "QGIS" },
+        "q8": { question: "8. What is 'Attribute Data' in GIS?", correct: "Descriptive information about geographical features" },
+        "q9": { question: "9. Historical GIS applications began significantly in which decade?", correct: "1960s" },
+        "q10": { question: "10. Which computer component handles the execution of spatial analysis algorithms?", correct: "Central Processing Unit (CPU)" },
+        "q11": { question: "11. What is the primary objective of a Geographical Information System?", correct: "Capture, store, analyze, and display spatial data" },
+        "q12": { question: "12. What does Spatial Information describe?", correct: "Physical location and shape of features on Earth" },
+        "q13": { question: "13. Which file extension is commonly associated with ESRI Vector shapefiles?", correct: ".shp" },
+        "q14": { question: "14. Which format is standard for georeferenced raster imagery?", correct: "GeoTIFF" },
+        "q15": { question: "15. What role do People / Users play as a GIS component?", correct: "Developing, maintaining, and analyzing GIS workflows" },
+        "q16": { question: "16. The famous 1854 London Cholera map by John Snow is an early example of:", correct: "Spatial Analysis" },
+        "q17": { question: "17. Which item is an essential output device for traditional GIS printing?", correct: "Large-format Plotter" },
+        "q18": { question: "18. What is metadata?", correct: "Data about data" },
+        "q19": { question: "19. Non-spatial data is also commonly referred to as:", correct: "Aspatial or Attribute Data" },
+        "q20": { question: "20. DBMS in the context of GIS stands for:", correct: "Database Management System" },
+        "q21": { question: "21. Theory: Define GIS and explain its main objectives in modern mapping.", correct: null },
+        "q31": { question: "31. Which model represents real-world entities using points, lines, and polygons?", correct: "Vector Data Model" },
+        "q32": { question: "32. In a raster data model, space is represented by:", correct: "A regular grid of cells (pixels)" },
+        "q33": { question: "33. Which geometry best represents a telephone pole on a small-scale map?", correct: "Point" },
+        "q34": { question: "34. Which geometry is best suited for representing a river network?", correct: "Polyline / Line" },
+        "q35": { question: "35. What is a GIS Layer?", correct: "A logical set of thematic spatial features" },
+        "q36": { question: "36. Raster data is generally superior to vector data for representing:", correct: "Continuous phenomena like elevation or temperature" },
+        "q37": { question: "37. Vector data is generally superior to raster data for:", correct: "High spatial precision and discrete boundaries" },
+        "q38": { question: "38. What does TIN stand for in spatial modeling?", correct: "Triangulated Irregular Network" },
+        "q39": { question: "39. Pixel size in raster data determines its:", correct: "Spatial Resolution" },
+        "q40": { question: "40. What type of database relationship exists when one parcel has many owners recorded?", correct: "One-to-Many" },
+        "q41": { question: "41. In vector data, a polygon is defined as:", correct: "A closed loop of connected lines" },
+        "q42": { question: "42. Compression techniques like Run-Length Encoding (RLE) are commonly applied to:", correct: "Raster Data" },
+        "q43": { question: "43. Which database structure uses tables linked by primary and foreign keys?", correct: "Relational Database Management System (RDBMS)" },
+        "q44": { question: "44. What is topological structure in vector models?", correct: "Explicit storage of spatial relationships (adjacency, connectivity)" },
+        "q45": { question: "45. Spatial Data Types include:", correct: "Point, Line, Polygon, Grid" },
+        "q46": { question: "46. Digital Elevation Models (DEM) are most frequently stored as:", correct: "Raster Grids" },
+        "q47": { question: "47. What is a main disadvantage of the raster data structure?", correct: "Large file size and loss of precise boundary line detail" },
+        "q48": { question: "48. What is a main advantage of the vector data structure?", correct: "Compact data storage and precise graphics" },
+        "q49": { question: "49. SQL in database operations stands for:", correct: "Structured Query Language" },
+        "q50": { question: "50. Object-Oriented Spatial Data Model treats real-world entities as:", correct: "Objects with attributes and behaviors (methods)" },
+        "q61": { question: "61. Which process converts paper maps into digital vector format using a mouse-like puck?", correct: "Heads-up / Tablet Digitization" },
+        "q62": { question: "62. What is the true physical shape of the Earth called?", correct: "Geoid" },
+        "q63": { question: "63. A mathematical model approximation of the Earth’s shape is an:", correct: "Ellipsoid / Spheroid" },
+        "q64": { question: "64. What does a Datum define?", correct: "Reference frame attaching an ellipsoid to the Earth surface" },
+        "q65": { question: "65. WGS 84 is an example of a global:", correct: "Geodetic Datum" },
+        "q66": { question: "66. Geographic Coordinate System (GCS) measures positions in:", correct: "Angular units (Degrees, Minutes, Seconds)" },
+        "q67": { question: "67. Projected Coordinate System (PCS) measures positions in:", correct: "Linear units (Meters, Feet)" },
+        "q68": { question: "68. UTM projection system divides the earth into how many zones?", correct: "60 zones" },
+        "q69": { question: "69. Mercator projection preserves which property?", correct: "Shape / Direction (Conformal)" },
+        "q70": { question: "70. Peters / Gall-Peters projection is famous for preserving:", correct: "Equal Area" },
+        "q71": { question: "71. What topological error occurs when a digitizer line extends past an intersecting line?", correct: "Overshoot" },
+        "q72": { question: "72. What error occurs when a line falls short of connecting to another line?", correct: "Undershoot" },
+        "q73": { question: "73. Small, unwanted gap polygons formed during vector overlay are called:", correct: "Sliver Polygons" },
+        "q74": { question: "74. Linking spatial features with tabular data is achieved using a unique common attribute called a:", correct: "Key / Join Field" },
+        "q75": { question: "75. The process of removing unnecessary vertices while retaining feature shape is called:", correct: "Line Simplification / Generalization" },
+        "q76": { question: "76. What is 'DPI' in the context of map scanning?", correct: "Dots Per Inch" },
+        "q77": { question: "77. Conical projection is best suited for mapping regions in:", correct: "Mid-latitudes (East-West extent)" },
+        "q78": { question: "78. Planar / Azimuthal projection is most commonly centered on:", correct: "Polar regions" },
+        "q79": { question: "79. What is RMSE in spatial accuracy assessment?", correct: "Root Mean Square Error" },
+        "q80": { question: "80. Snapping tolerance in vector editing ensures that:", correct: "New vertices automatically connect to existing nodes/edges within distance" },
+        "q81": { question: "81. Latitude lines are also known as:", correct: "Parallels" },
+        "q82": { question: "82. Longitude lines are also known as:", correct: "Meridians" },
+        "q83": { question: "83. The 0 degree line of longitude is called:", correct: "Prime Meridian" },
+        "q84": { question: "84. Which method converts paper documents directly into a grid of digital pixels?", correct: "Scanning" },
+        "q85": { question: "85. Ground Control Points (GCPs) are used in:", correct: "Georeferencing spatial data to real-world coordinates" }
+    };
+
+    let globalStudentData = []; 
 
     function loadData() {
         fetch('/api/all-submissions')
@@ -68,11 +140,9 @@
                 data.forEach((item, index) => {
                     const tr = document.createElement('tr');
                     
-                    // Answers Formatting (Truncated preview)
                     let rawJSON = item.answers ? JSON.stringify(item.answers) : 'No Answers';
                     const answersPreview = rawJSON.length > 80 ? rawJSON.substring(0, 80) + '...' : rawJSON;
                     
-                    // Violation Details Formatting
                     let violationDetails = '';
                     if (item.violations && item.violations.length > 0) {
                         violationDetails = item.violations.map(v => `${v.type} (${v.time})`).join('<br>');
@@ -101,16 +171,13 @@
             });
     }
 
-    // Single Record Delete Function
     function deleteSingleRecord(recordId) {
         if (confirm("⚠️ क्या आप सच में इस छात्र का डेटा डिलीट करना चाहते हैं?")) {
-            fetch(`/api/delete-submission/${recordId}`, { 
-                method: 'DELETE' 
-            })
+            fetch(`/api/delete-submission/${recordId}`, { method: 'DELETE' })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    loadData(); // Delete hone ke baad table automatically refresh ho jayegi
+                    loadData(); 
                 } else {
                     alert("डेटा डिलीट करने में प्रॉब्लम आई।");
                 }
@@ -122,12 +189,9 @@
         }
     }
 
-    // Clear All History Function
     function clearHistory() {
         if (confirm("⚠️ क्या आप सच में सारा पुराना डेटा डिलीट करना चाहते हैं? यह डेटा वापस नहीं मिलेगा!")) {
-            fetch('/api/clear-submissions', { 
-                method: 'DELETE' 
-            })
+            fetch('/api/clear-submissions', { method: 'DELETE' })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -145,17 +209,43 @@
     }
 
     // ===============================================
-    // PDF GENERATION SYSTEM
+    // PDF GENERATION SYSTEM (WITH AUTO-CHECKING)
     // ===============================================
 
     function formatAnswersForTable(answersObj) {
-        if (!answersObj || Object.keys(answersObj).length === 0) return [['No Answers', 'N/A']];
+        if (!answersObj || Object.keys(answersObj).length === 0) return { table: [['No Answers', '-', '-', '-']], score: 0, total: 0 };
         
         let formattedData = [];
+        let score = 0;
+        let totalQuestions = 0;
+
         for (let key in answersObj) {
-            formattedData.push([key.toUpperCase(), answersObj[key]]);
+            let studentAns = answersObj[key];
+            let questionText = key.toUpperCase();
+            let correctAns = "Manual Check";
+            let status = "📝 Check";
+
+            if (masterAnswerKey[key]) {
+                questionText = masterAnswerKey[key].question;
+                
+                if (masterAnswerKey[key].correct) {
+                    correctAns = masterAnswerKey[key].correct;
+                    totalQuestions++;
+                    
+                    if (studentAns.trim() === correctAns.trim()) {
+                        status = "✅ Correct";
+                        score++;
+                    } else {
+                        status = "❌ Wrong";
+                    }
+                } else {
+                    correctAns = "Theory Question";
+                }
+            }
+            
+            formattedData.push([questionText, studentAns, correctAns, status]);
         }
-        return formattedData;
+        return { table: formattedData, score: score, total: totalQuestions };
     }
 
     function downloadSinglePDF(index) {
@@ -166,67 +256,109 @@
         doc.setFontSize(18);
         doc.text("Student Examination Report", 14, 20);
         
+        const resultData = formatAnswersForTable(student.answers);
+
         doc.setFontSize(12);
         doc.text(`Name: ${student.studentName || 'Unknown'}`, 14, 30);
-        doc.text(`Roll No / ID: ${student.studentId || 'N/A'}`, 14, 38);
+        doc.text(`Batch / ID: ${student.studentId || 'N/A'}`, 14, 38);
         doc.text(`Submission Time: ${new Date(student.submittedAt).toLocaleString()}`, 14, 46);
-        doc.text(`Total Violations: ${student.violations ? student.violations.length : 0}`, 14, 54);
+        doc.text(`Violations: ${student.violations ? student.violations.length : 0}`, 14, 54);
         
-        const tableData = formatAnswersForTable(student.answers);
+        doc.setTextColor(40, 167, 69);
+        doc.text(`Score (MCQs): ${resultData.score} / ${resultData.total}`, 120, 30);
+        doc.setTextColor(0, 0, 0);
         
         doc.autoTable({
             startY: 60,
-            head: [['Question', 'Submitted Answer']],
-            body: tableData,
+            head: [['Question', 'Student Answer', 'Correct Answer', 'Result']],
+            body: resultData.table,
             theme: 'grid',
-            headStyles: { fillColor: [0, 123, 255] }
+            headStyles: { fillColor: [0, 123, 255] },
+            columnStyles: { 
+                0: { cellWidth: 70 }, 
+                1: { cellWidth: 40 }, 
+                2: { cellWidth: 40 }, 
+                3: { cellWidth: 25 }  
+            }
         });
         
         doc.save(`${student.studentName || 'Student'}_Exam_Report.pdf`);
     }
 
     function downloadMasterPDF() {
-        if (globalStudentData.length === 0) {
-            return alert("PDF बनाने के लिए कोई डेटा मौजूद नहीं है!");
-        }
+        if (globalStudentData.length === 0) return alert("PDF बनाने के लिए कोई डेटा मौजूद नहीं है!");
         
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
+        // ==========================================
+        // PAGE 1: QUESTION PAPER & MASTER KEY
+        // ==========================================
         doc.setFontSize(22);
         doc.setTextColor(0, 123, 255);
-        doc.text("Master Examination Report", 14, 20);
+        doc.text("Master Question Paper & Answer Key", 14, 20);
         
         doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
-        doc.text(`Total Students Evaluated: ${globalStudentData.length}`, 14, 30);
-        doc.text(`Date Generated: ${new Date().toLocaleString()}`, 14, 38);
+        doc.text(`Date Generated: ${new Date().toLocaleString()}`, 14, 30);
         
-        let currentY = 50;
-
-        globalStudentData.forEach((student, i) => {
-            if (i > 0) {
-                doc.addPage();
-                currentY = 20;
+        let masterTableData = [];
+        for (let key in masterAnswerKey) {
+            masterTableData.push([
+                key.toUpperCase(),
+                masterAnswerKey[key].question,
+                masterAnswerKey[key].correct || "Manual Check (Theory)"
+            ]);
+        }
+        
+        doc.autoTable({
+            startY: 40,
+            head: [['Q. No', 'Question', 'Correct Answer']],
+            body: masterTableData,
+            theme: 'grid',
+            headStyles: { fillColor: [52, 58, 64] },
+            columnStyles: { 
+                0: { cellWidth: 20 },
+                1: { cellWidth: 100 },
+                2: { cellWidth: 60 }
             }
+        });
+
+        // ==========================================
+        // NEXT PAGES: STUDENTS EVALUATION DATA
+        // ==========================================
+        globalStudentData.forEach((student, i) => {
+            doc.addPage(); 
+            let currentY = 20;
             
+            const resultData = formatAnswersForTable(student.answers);
+
             doc.setFontSize(16);
             doc.setTextColor(40, 167, 69); 
-            doc.text(`Student: ${student.studentName || 'Unknown'} (ID: ${student.studentId || 'N/A'})`, 14, currentY);
+            doc.text(`Student: ${student.studentName || 'Unknown'} (Batch/ID: ${student.studentId || 'N/A'})`, 14, currentY);
             
-            doc.setFontSize(10);
+            doc.setFontSize(11);
             doc.setTextColor(100, 100, 100);
             doc.text(`Submitted At: ${new Date(student.submittedAt).toLocaleString()}`, 14, currentY + 8);
             doc.text(`Violations Recorded: ${student.violations ? student.violations.length : 0}`, 14, currentY + 14);
             
-            const tableData = formatAnswersForTable(student.answers);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont(undefined, 'bold');
+            doc.text(`MCQ Score: ${resultData.score} / ${resultData.total}`, 140, currentY + 14);
+            doc.setFont(undefined, 'normal');
             
             doc.autoTable({
                 startY: currentY + 20,
-                head: [['Question', 'Answer']],
-                body: tableData,
+                head: [['Question', 'Student Answer', 'Correct Answer', 'Result']],
+                body: resultData.table,
                 theme: 'striped',
-                headStyles: { fillColor: [52, 58, 64] }
+                headStyles: { fillColor: [52, 58, 64] },
+                columnStyles: { 
+                    0: { cellWidth: 70 },
+                    1: { cellWidth: 40 },
+                    2: { cellWidth: 40 },
+                    3: { cellWidth: 25 }
+                }
             });
         });
         
