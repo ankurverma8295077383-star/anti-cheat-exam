@@ -18,6 +18,9 @@
         .btn-pdf:hover { background: #138496; }
         .btn-delete { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; margin-left: 5px; }
         .btn-delete:hover { background: #c82333; }
+        
+        /* Checkbox CSS */
+        .select-cb { transform: scale(1.5); cursor: pointer; }
     </style>
 
     <!-- PDF Generation Libraries -->
@@ -31,12 +34,15 @@
     <div style="margin-bottom: 20px;">
         <button onclick="loadData()" style="padding: 10px 15px; cursor: pointer;">🔄 Refresh Data</button>
         <button onclick="clearHistory()" style="padding: 10px 15px; cursor: pointer; background-color: #dc3545; color: white; border: none; margin-left: 10px; border-radius: 4px;">🗑️ Clear All History</button>
-        <button onclick="downloadMasterPDF()" style="padding: 10px 15px; cursor: pointer; background-color: #28a745; color: white; border: none; margin-left: 10px; border-radius: 4px;">📥 Download Master PDF</button>
+        <button onclick="downloadMasterPDF()" style="padding: 10px 15px; cursor: pointer; background-color: #28a745; color: white; border: none; margin-left: 10px; border-radius: 4px;">📥 Download Selected as Master PDF</button>
     </div>
 
     <table>
         <thead>
             <tr>
+                <th style="width: 40px; text-align: center;">
+                    <input type="checkbox" id="selectAll" class="select-cb" onclick="toggleSelectAll()">
+                </th>
                 <th>Student ID / Name</th>
                 <th>Submitted Time</th>
                 <th>Answers (Preview)</th>
@@ -45,7 +51,7 @@
             </tr>
         </thead>
         <tbody id="submissionTable">
-            <tr><td colspan="5">Loading data...</td></tr>
+            <tr><td colspan="6">Loading data...</td></tr>
         </tbody>
     </table>
 
@@ -105,9 +111,10 @@
                 globalStudentData = data; 
                 const tbody = document.getElementById('submissionTable');
                 tbody.innerHTML = '';
+                document.getElementById('selectAll').checked = false;
 
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5">अभी तक किसी छात्र ने एग्जाम नहीं दिया है।</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">अभी तक किसी छात्र ने एग्जाम नहीं दिया है।</td></tr>';
                     return;
                 }
 
@@ -127,6 +134,9 @@
                         : `<span class="success-badge">Clean Exam</span>`;
 
                     tr.innerHTML = `
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="student-cb select-cb" value="${index}">
+                        </td>
                         <td><strong>${item.studentName || 'Unknown'}</strong><br><small>${item.studentId || 'N/A'}</small></td>
                         <td>${new Date(item.submittedAt).toLocaleString()}</td>
                         <td><code>${answersPreview}</code></td>
@@ -143,6 +153,12 @@
                 console.error(err);
                 alert('Data load करने में समस्या आई।');
             });
+    }
+
+    function toggleSelectAll() {
+        const isChecked = document.getElementById('selectAll').checked;
+        const checkboxes = document.querySelectorAll('.student-cb');
+        checkboxes.forEach(cb => cb.checked = isChecked);
     }
 
     function deleteSingleRecord(recordId) {
@@ -193,10 +209,8 @@
         let score = 0;
         let totalQuestions = 0; 
 
-        // Dono keys (Student Answers aur Master Key) ko mila kar ek unique list banayenge
         let allKeys = new Set([...Object.keys(answersObj), ...Object.keys(masterAnswerKey)]);
         
-        // Sorting: Taaki q1, q2, q3 line se aayen
         let sortedKeys = Array.from(allKeys).sort((a, b) => {
             return (parseInt(a.match(/\d+/)) || 0) - (parseInt(b.match(/\d+/)) || 0);
         });
@@ -212,10 +226,9 @@
             if (masterAnswerKey[key]) {
                 questionText = masterAnswerKey[key].question;
                 
-                // MCQs jinke aage answer likha hai unhe count karenge
                 if (masterAnswerKey[key].correct) {
                     correctAns = masterAnswerKey[key].correct;
-                    totalQuestions++; // 🚀 Yahi Logic TOTAL MARKS ko apne aap set karta hai
+                    totalQuestions++; 
                     
                     if (studentAns === "Not Attempted") {
                         status = "⚠️ Skipped";
@@ -229,7 +242,6 @@
                     correctAns = "Theory Question";
                 }
             } else {
-                // Agar HTML me question tha, par yahan Master key me bhool gaye
                 questionText = `Question ${key.replace('q', '')} (Missing in Admin Key)`;
                 status = "⚠️ Update Admin Key";
             }
@@ -278,12 +290,16 @@
     }
 
     function downloadMasterPDF() {
-        if (globalStudentData.length === 0) return alert("PDF बनाने के लिए कोई डेटा मौजूद नहीं है!");
-        
+        const checkboxes = document.querySelectorAll('.student-cb:checked');
+        if (checkboxes.length === 0) {
+            return alert("मास्टर PDF बनाने के लिए कम से कम एक छात्र का चयन करें!");
+        }
+
+        const selectedStudents = Array.from(checkboxes).map(cb => globalStudentData[cb.value]);
+
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // PAGE 1: QUESTION PAPER & MASTER KEY
         doc.setFontSize(22);
         doc.setTextColor(0, 123, 255);
         doc.text("Master Question Paper & Answer Key", 14, 20);
@@ -314,8 +330,7 @@
             }
         });
 
-        // NEXT PAGES: STUDENTS EVALUATION DATA
-        globalStudentData.forEach((student, i) => {
+        selectedStudents.forEach((student, i) => {
             doc.addPage(); 
             let currentY = 20;
             
