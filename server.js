@@ -35,7 +35,7 @@ const ActiveSession = mongoose.model('ActiveSession', activeSessionSchema);
 
 // --- SECURITY ENGINE ---
 // 🛑 NAYA: Exam ke liye ek Secret Key set karein
-const SECRET_EXAM_KEY = "GIS2026"; // <-- Yahan apna password/key likho jo tum students ko doge
+const SECRET_EXAM_KEY = "260826"; // <-- Yahan apna password/key likho jo tum students ko doge
 
 // API 1: Exam Start Karein aur Token lein
 app.post('/api/start-exam', async (req, res) => {
